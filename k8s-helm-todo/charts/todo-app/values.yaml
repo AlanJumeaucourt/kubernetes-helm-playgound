@@ -1,0 +1,48 @@
+image:
+  repository: todo-app
+  tag: 1.0.1
+  pullPolicy: IfNotPresent
+
+backend:
+  name: todo-backend
+  port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+frontend:
+  name: todo-frontend
+  port: 80
+  image:
+    repository: todo-frontend
+    tag: 1.0.1
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+database:
+  name: todo-db
+  port: 5432
+  user: postgres
+  password: postgres
+  database: todos
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+ingress:
+  enabled: true
+  host: todo.local
