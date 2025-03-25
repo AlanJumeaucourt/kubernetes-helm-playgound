@@ -2,19 +2,19 @@ apiVersion: v2
 name: todo-app
 description: A Helm chart for Todo Application
 type: application
-version: 1.0.3
-appVersion: "1.0.3"
-home: https://github.com/yourusername/full-helm-app
+version: 1.0.4
+appVersion: "1.0.4"
+home: https://github.com/alanjumeaucourt/full-helm-app
 sources:
-  - https://github.com/yourusername/full-helm-app
+  - https://github.com/alanjumeaucourt/full-helm-app
 maintainers:
-  - name: Your Name
-    email: your.email@example.com
+  - name: Alan Jumeaucourt
+    email: git@mail.jumeaucourt.com
 icon: https://path-to-your-icon.png
 annotations:
   artifacthub.io/changes: |
-    - Backend: Implemented PUT endpoint for updating todo items
-    - Backend: Implemented DELETE endpoint for removing todo items
-    - Frontend: Added functionality to toggle todo completion state
-    - Frontend: Added functionality to delete todo items
-    - Fixed naming conflict between SQLAlchemy and Pydantic models
+    - Backend: Replaced SQLAlchemy with plain SQL using psycopg2
+    - Backend: Replaced Pydantic with Marshmallow for validation
+    - Backend: Improved database connection handling
+    - Backend: Added proper error handling for database operations
+    - Backend: Version bumped to 1.0.4

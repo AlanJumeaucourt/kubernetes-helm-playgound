@@ -2,11 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2025-03-25
 
-## [1.0.3] - 2025-03-25
+### Changed
+- Backend: Replaced SQLAlchemy ORM with direct SQL queries using psycopg2
+- Backend: Replaced Pydantic validation with Marshmallow schemas
+- Backend: Improved error handling for database operations
+- Backend: Enhanced database connection management
 
 ### Added
-- Migrated to Cloud Native PostgreSQL
+- Backend: New SQL-based database initialization
+- Backend: Proper database health check implementation in /health endpoint
+- Backend: Dynamic SQL query generation for update operations
+
+### Removed
+- Removed SQLAlchemy dependency
+- Removed Pydantic dependency
+- Removed Alembic dependency
 
 ## [1.0.3] - 2025-03-25
 

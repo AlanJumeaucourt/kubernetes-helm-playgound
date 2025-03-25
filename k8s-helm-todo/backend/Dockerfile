@@ -7,8 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-LABEL version="1.0.3" \
-      description="Todo App Backend API" \
+LABEL version="1.0.4" \
+      description="Todo App Backend API - Using Plain SQL and Marshmallow" \
       maintainer="Your Name <your.email@example.com>"
 
 EXPOSE 8000

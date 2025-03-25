@@ -1,6 +1,6 @@
 image:
   repository: todo-app
-  tag: 1.0.3
+  tag: 1.0.4
   pullPolicy: IfNotPresent
 
 backend:
@@ -19,7 +19,7 @@ frontend:
   port: 80
   image:
     repository: todo-frontend
-    tag: 1.0.3
+    tag: 1.0.4
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -35,7 +35,7 @@ cnpg:
   instances: 1
   storage:
     size: 1Gi
-    storageClass: standard
+    storageClass: local-path
   database:
     name: todos
     owner: todoapp

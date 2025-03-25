@@ -1,127 +1,198 @@
 import os
+from typing import Any, Dict, Generator, List
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from sqlalchemy import Boolean, Column, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import psycopg2
+import psycopg2.extras
+from fastapi import Depends, FastAPI, HTTPException
+from marshmallow import Schema, ValidationError, fields
+from psycopg2.extensions import connection
+from psycopg2.extras import RealDictCursor
 
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/todos")
 
-# SQLAlchemy setup
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+app = FastAPI(title="Todo API", version="1.0.4")
 
 
-# Database model
-class TodoModel(Base):
-    __tablename__ = "todos"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    description = Column(String)
-    completed = Column(Boolean, default=False)
-
-
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Helper function to get database connection
+def get_db() -> Generator[connection, None, None]:
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
-# Pydantic models
-class TodoBase(BaseModel):
-    title: str
-    description: str | None = None
+# Create tables if they don't exist
+def init_db() -> None:
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS todos (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                completed BOOLEAN DEFAULT FALSE
+            )
+        """)
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
 
 
-class TodoCreate(TodoBase):
+# Initialize database
+init_db()
+
+
+# Type definitions for validated data
+TodoData = Dict[str, Any]
+
+
+# Marshmallow schemas for validation
+class TodoBaseSchema(Schema):
+    title = fields.String(required=True)
+    description = fields.String(allow_none=True)
+
+
+class TodoCreateSchema(TodoBaseSchema):
     pass
 
 
-class TodoUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    completed: bool | None = None
+class TodoUpdateSchema(Schema):
+    title = fields.String(required=False, allow_none=True)
+    description = fields.String(required=False, allow_none=True)
+    completed = fields.Boolean(required=False, allow_none=True)
 
 
-class Todo(TodoBase):
-    id: int
-    completed: bool
-
-    class Config:
-        from_attributes = True
+class TodoSchema(TodoBaseSchema):
+    id = fields.Integer()
+    completed = fields.Boolean()
 
 
-app = FastAPI(title="Todo API", version="1.0.0")
+todo_schema = TodoSchema()
+todos_schema = TodoSchema(many=True)
+todo_create_schema = TodoCreateSchema()
+todo_update_schema = TodoUpdateSchema()
 
 
-# Dependency
-def get_db():
-    db = SessionLocal()
+@app.get("/todos")
+def read_todos(conn: connection = Depends(get_db)) -> List[Dict[str, Any]]:
     try:
-        yield db
-    finally:
-        db.close()
-
-
-@app.get("/todos", response_model=list[Todo])
-def read_todos():
-    db = SessionLocal()
-    try:
-        todos = db.query(TodoModel).all()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM todos")
+        # Need to convert RealDictRow to Dict to satisfy the type checker
+        todos = [dict(todo) for todo in cur.fetchall()]
+        cur.close()
         return todos
-    finally:
-        db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/todos", response_model=Todo)
-def create_todo(todo: TodoCreate):
-    db = SessionLocal()
+@app.post("/todos")
+def create_todo(
+    todo_data: Dict[str, Any], conn: connection = Depends(get_db)
+) -> Dict[str, Any]:
     try:
-        db_todo = TodoModel(**todo.model_dump())
-        db.add(db_todo)
-        db.commit()
-        db.refresh(db_todo)
-        return db_todo
-    finally:
-        db.close()
+        # Validate input
+        validated_data: TodoData = todo_create_schema.load(todo_data)
+
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "INSERT INTO todos (title, description) VALUES (%s, %s) RETURNING *",
+            (validated_data.get("title"), validated_data.get("description")),
+        )
+        new_todo = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return new_todo
+    except ValidationError as err:
+        raise HTTPException(status_code=422, detail=str(err.messages))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/todos/{todo_id}", response_model=Todo)
-def update_todo(todo_id: int, todo: TodoUpdate):
-    db = SessionLocal()
+@app.put("/todos/{todo_id}")
+def update_todo(
+    todo_id: int, todo_data: Dict[str, Any], conn: connection = Depends(get_db)
+) -> Dict[str, Any]:
     try:
-        db_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
-        if db_todo is None:
+        # Validate input
+        validated_data: TodoData = todo_update_schema.load(todo_data)
+
+        # Check if the todo exists
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM todos WHERE id = %s", (todo_id,))
+        existing_todo = cur.fetchone()
+
+        if not existing_todo:
             raise HTTPException(status_code=404, detail="Todo not found")
 
-        update_data = todo.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(db_todo, key, value)
+        # Build the update query dynamically based on provided fields
+        update_fields: List[str] = []
+        params: List[Any] = []
 
-        db.commit()
-        db.refresh(db_todo)
-        return db_todo
-    finally:
-        db.close()
+        if "title" in validated_data:
+            update_fields.append("title = %s")
+            params.append(validated_data.get("title"))
+
+        if "description" in validated_data:
+            update_fields.append("description = %s")
+            params.append(validated_data.get("description"))
+
+        if "completed" in validated_data:
+            update_fields.append("completed = %s")
+            params.append(validated_data.get("completed"))
+
+        if not update_fields:
+            return dict(existing_todo)
+
+        # Add the todo_id to the params
+        params.append(todo_id)
+
+        # Execute the update
+        query = f"UPDATE todos SET {', '.join(update_fields)} WHERE id = %s RETURNING *"
+        cur.execute(query, params)
+        updated_todo = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+
+        return updated_todo
+    except ValidationError as err:
+        raise HTTPException(status_code=422, detail=str(err.messages))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/todos/{todo_id}", response_model=dict)
-def delete_todo(todo_id: int):
-    db = SessionLocal()
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: int, conn: connection = Depends(get_db)) -> Dict[str, str]:
     try:
-        db_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
-        if db_todo is None:
+        cur = conn.cursor()
+
+        # Check if the todo exists
+        cur.execute("SELECT id FROM todos WHERE id = %s", (todo_id,))
+        if not cur.fetchone():
             raise HTTPException(status_code=404, detail="Todo not found")
 
-        db.delete(db_todo)
-        db.commit()
+        # Delete the todo
+        cur.execute("DELETE FROM todos WHERE id = %s", (todo_id,))
+        conn.commit()
+        cur.close()
+
         return {"message": f"Todo {todo_id} deleted successfully"}
-    finally:
-        db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+def health_check() -> Dict[str, str]:
+    try:
+        # Test database connection
+        conn = psycopg2.connect(DATABASE_URL)
+        conn.close()
+        return {"status": "healthy"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Database connection failed: {str(e)}"
+        )
