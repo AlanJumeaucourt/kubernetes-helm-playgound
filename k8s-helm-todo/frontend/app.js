@@ -94,13 +94,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle todo complete status
     const toggleTodoComplete = async (event) => {
         const todoId = event.target.dataset.id;
+        const isCompleted = event.target.textContent === 'Uncomplete';
 
         try {
-            // In a real app, you would update the todo's completed status
-            // For this simple example, we'll just refresh the list
-            // This would be replaced with a real API call to toggle the status
+            const response = await fetch(`${apiBaseUrl}/${todoId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ completed: !isCompleted })
+            });
 
-            // Refresh the todo list (in a real app, this would happen after successful API call)
+            if (!response.ok) {
+                throw new Error('Failed to update todo');
+            }
+
+            // Refresh the todo list
             fetchTodos();
         } catch (error) {
             console.error('Error toggling todo complete status:', error);
@@ -112,11 +121,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const todoId = event.target.dataset.id;
 
         try {
-            // In a real app, you would delete the todo
-            // For this simple example, we'll just refresh the list
-            // This would be replaced with a real API call to delete the todo
+            const response = await fetch(`${apiBaseUrl}/${todoId}`, {
+                method: 'DELETE'
+            });
 
-            // Refresh the todo list (in a real app, this would happen after successful API call)
+            if (!response.ok) {
+                throw new Error('Failed to delete todo');
+            }
+
+            // Refresh the todo list
             fetchTodos();
         } catch (error) {
             console.error('Error deleting todo:', error);

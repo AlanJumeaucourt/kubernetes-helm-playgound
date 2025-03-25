@@ -1,6 +1,6 @@
 image:
   repository: todo-app
-  tag: 1.0.1
+  tag: 1.0.3
   pullPolicy: IfNotPresent
 
 backend:
@@ -19,7 +19,7 @@ frontend:
   port: 80
   image:
     repository: todo-frontend
-    tag: 1.0.1
+    tag: 1.0.3
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -29,19 +29,18 @@ frontend:
       cpu: 500m
       memory: 256Mi
 
-database:
-  name: todo-db
-  port: 5432
-  user: postgres
-  password: postgres
-  database: todos
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
+cnpg:
+  enabled: true
+  clusterName: todo-db
+  instances: 1
+  storage:
+    size: 1Gi
+    storageClass: standard
+  database:
+    name: todos
+    owner: todoapp
+  superuser:
+    secretName: todo-db-superuser
 
 ingress:
   enabled: true

@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: todo-db
+spec:
+  instances: 1
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 1Gi
+    storageClass: local-path
+  superuserSecret:
+    name: todo-db-superuser
+  bootstrap:
+    initdb:
+      database: todos
+      owner: todoapp
+  enablePDB: true
+  monitoring:
+    enablePodMonitor: false
+    customQueriesConfigMap:
+      - name: cnpg-default-monitoring
+        key: queries

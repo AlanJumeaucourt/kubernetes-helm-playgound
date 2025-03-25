@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Boolean, Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -37,6 +37,12 @@ class TodoBase(BaseModel):
 
 class TodoCreate(TodoBase):
     pass
+
+
+class TodoUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    completed: bool | None = None
 
 
 class Todo(TodoBase):
@@ -78,6 +84,40 @@ def create_todo(todo: TodoCreate):
         db.commit()
         db.refresh(db_todo)
         return db_todo
+    finally:
+        db.close()
+
+
+@app.put("/todos/{todo_id}", response_model=Todo)
+def update_todo(todo_id: int, todo: TodoUpdate):
+    db = SessionLocal()
+    try:
+        db_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+        if db_todo is None:
+            raise HTTPException(status_code=404, detail="Todo not found")
+
+        update_data = todo.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_todo, key, value)
+
+        db.commit()
+        db.refresh(db_todo)
+        return db_todo
+    finally:
+        db.close()
+
+
+@app.delete("/todos/{todo_id}", response_model=dict)
+def delete_todo(todo_id: int):
+    db = SessionLocal()
+    try:
+        db_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+        if db_todo is None:
+            raise HTTPException(status_code=404, detail="Todo not found")
+
+        db.delete(db_todo)
+        db.commit()
+        return {"message": f"Todo {todo_id} deleted successfully"}
     finally:
         db.close()
 
