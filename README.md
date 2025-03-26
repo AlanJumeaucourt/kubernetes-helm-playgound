@@ -44,26 +44,23 @@ The current version includes:
    cd full-helm-app
    ```
 
-2. Build and push Docker images:
-   ```
-   docker build -t todo-app:1.0.3 ./k8s-helm-todo/backend
-   docker build -t todo-frontend:1.0.3 ./k8s-helm-todo/frontend
+2. Install cloudnativePG
 
-   # For k3d:
-   k3d image import todo-app:1.0.3 <your-cluster-name>
-   ```
-
-3. Install with Helm:
-   ```
-   helm install todo-app k8s-helm-todo/charts/todo-app
+   ```bash
+   helm repo add cnpg https://cloudnative-pg.github.io/charts
+   helm upgrade --install cnpg \
+   --namespace cnpg-system \
+   --create-namespace \
+   cnpg/cloudnative-pg
    ```
 
-4. Access the application:
-   ```
-   kubectl port-forward service/todo-frontend 8081:80
+3. Deploy the application
+
+   ```bash
+   ./k8s-helm-todo/deploy.sh
    ```
 
-   Then open `http://localhost:8081` in your browser.
+
 
 ## Development
 
