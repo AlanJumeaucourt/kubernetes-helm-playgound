@@ -12,7 +12,7 @@ from psycopg2.extras import RealDictCursor
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/todos")
 
-app = FastAPI(title="Todo API", version="1.0.5")
+app = FastAPI(title="Todo API", version="1.0.6")
 
 
 # Helper function to get database connection
