@@ -40,30 +40,17 @@ jobs:
           sed -i "s/^  tag: .*/  tag: $VERSION/" k8s-helm-todo/charts/todo-app/values.yaml
           sed -i "s/^    tag: .*/    tag: $VERSION/" k8s-helm-todo/charts/todo-app/values.yaml
           sed -i "s/^  version: \".*\"/  version: \"$VERSION\"/" k8s-helm-todo/charts/todo-app/values.yaml
-      
-      - name: Update CHANGELOG.md
-        run: |
-          # Get commit messages since last tag
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            # If there's no previous tag, get all commits
-            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
-          else
-            # Get commits between previous tag and current tag
-            COMMITS=$(git log --pretty=format:"- %s" --no-merges $PREV_TAG..HEAD)
-          fi
           
-          # Update CHANGELOG.md
-          DATE=$(date +%Y-%m-%d)
-          echo -e "# v$VERSION ($DATE)\n\n$COMMITS\n\n$(cat k8s-helm-todo/CHANGELOG.md)" > k8s-helm-todo/CHANGELOG.md
+          # Update main.py version
+          sed -i "s/^app = FastAPI(title=\"Todo API\", version=\".*\")/app = FastAPI(title=\"Todo API\", version=\"$VERSION\")/" k8s-helm-todo/backend/main.py
       
       - name: Commit version updates
         run: |
-          git config --local user.email "action@github.com"
+          git config --local user.email "git@mail.jumeaucourt.com"
           git config --local user.name "GitHub Action"
-          git add k8s-helm-todo/charts/todo-app/Chart.yaml k8s-helm-todo/charts/todo-app/values.yaml k8s-helm-todo/CHANGELOG.md
+          git add k8s-helm-todo/charts/todo-app/Chart.yaml k8s-helm-todo/charts/todo-app/values.yaml k8s-helm-todo/CHANGELOG.md k8s-helm-todo/backend/main.py
           git commit -m "chore: update version to $VERSION" || echo "No changes to commit"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push --force origin HEAD:${GITHUB_REF_NAME}
 
       - name: Build and push backend image
         uses: docker/build-push-action@v4
