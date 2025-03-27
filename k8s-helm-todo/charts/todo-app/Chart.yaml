@@ -2,8 +2,8 @@ apiVersion: v2
 name: todo-app
 description: A Helm chart for Todo Application
 type: application
-version: 1.0.5
-appVersion: "1.0.5"
+version: 1.0.7
+appVersion: "1.0.7"
 home: https://github.com/alanjumeaucourt/full-helm-app
 sources:
   - https://github.com/alanjumeaucourt/full-helm-app
