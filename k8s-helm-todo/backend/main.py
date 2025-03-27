@@ -1,5 +1,6 @@
 import os
 from typing import Any, Dict, Generator, List
+from datetime import datetime
 
 import psycopg2
 import psycopg2.extras
@@ -11,7 +12,7 @@ from psycopg2.extras import RealDictCursor
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/todos")
 
-app = FastAPI(title="Todo API", version="1.0.4")
+app = FastAPI(title="Todo API", version="1.0.5")
 
 
 # Helper function to get database connection
@@ -36,6 +37,15 @@ def init_db() -> None:
                 completed BOOLEAN DEFAULT FALSE
             )
         """)
+        
+        # Check if completion_date column exists, if not add it
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name='todos' AND column_name='completion_date'
+        """)
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE todos ADD COLUMN completion_date TIMESTAMP")
+        
         conn.commit()
     finally:
         cur.close()
@@ -64,11 +74,13 @@ class TodoUpdateSchema(Schema):
     title = fields.String(required=False, allow_none=True)
     description = fields.String(required=False, allow_none=True)
     completed = fields.Boolean(required=False, allow_none=True)
+    completion_date = fields.DateTime(required=False, allow_none=True)
 
 
 class TodoSchema(TodoBaseSchema):
     id = fields.Integer()
     completed = fields.Boolean()
+    completion_date = fields.DateTime(allow_none=True)
 
 
 todo_schema = TodoSchema()
@@ -144,6 +156,19 @@ def update_todo(
         if "completed" in validated_data:
             update_fields.append("completed = %s")
             params.append(validated_data.get("completed"))
+            
+            # Update completion_date automatically when completed status changes
+            if validated_data.get("completed"):
+                update_fields.append("completion_date = %s")
+                params.append(datetime.now())
+            else:
+                update_fields.append("completion_date = %s")
+                params.append(None)
+        
+        # Allow explicit setting of completion_date
+        if "completion_date" in validated_data and "completed" not in validated_data:
+            update_fields.append("completion_date = %s")
+            params.append(validated_data.get("completion_date"))
 
         if not update_fields:
             return dict(existing_todo)

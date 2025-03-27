@@ -13,8 +13,9 @@ maintainers:
 icon: https://path-to-your-icon.png
 annotations:
   artifacthub.io/changes: |
-    - Backend: Replaced SQLAlchemy with plain SQL using psycopg2
-    - Backend: Replaced Pydantic with Marshmallow for validation
-    - Backend: Improved database connection handling
-    - Backend: Added proper error handling for database operations
-    - Backend: Version bumped to 1.0.4
+    - Database: Added completion_date field to todos table
+    - Backend: Added completion_date support in API
+    - Frontend: Display completion date for completed todos
+    - Added database migration system for seamless schema updates
+    - Automatic recording of completion timestamp when todo is marked complete
+    - Fixed Helm chart image references in deployment templates

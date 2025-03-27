@@ -18,8 +18,8 @@ spec:
           command: ['sh', '-c', 'until pg_isready -h todo-db-rw -p 5432; do echo waiting for database; sleep 2; done;']
       containers:
         - name: {{ .Values.backend.name }}
-          image: {{.Values.image.repository}}:{{.Values.image.tag}}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.backend.port }}
           env:

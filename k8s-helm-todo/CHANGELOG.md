@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2025-03-26
+
+### Added
+- Database: Added completion_date field to todos table
+- Backend: Added completion_date support in API
+- Frontend: Display completion date for completed todos
+- Database migration system for seamless schema updates
+- Automatic recording of completion timestamp when a todo is marked as complete
+
+### Changed
+- Updated backend version to 1.0.5
+- Updated frontend version to 1.0.5
+- Improved completed todo styling
+
 ## [1.0.4] - 2025-03-25
 
 ### Changed

@@ -8,6 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const todoDescription = document.getElementById('todoDescription');
     const addTodoBtn = document.getElementById('addTodoBtn');
 
+    // Format date for display
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleString();
+    };
+
     // Fetch all todos
     const fetchTodos = async () => {
         try {
@@ -34,10 +41,18 @@ document.addEventListener('DOMContentLoaded', () => {
         todos.forEach(todo => {
             const li = document.createElement('li');
             li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+            
+            // Create completion date display
+            let completionDateHtml = '';
+            if (todo.completed && todo.completion_date) {
+                completionDateHtml = `<p class="completion-date">Completed on: ${formatDate(todo.completion_date)}</p>`;
+            }
+            
             li.innerHTML = `
                 <div class="todo-content">
                     <h3>${todo.title}</h3>
                     ${todo.description ? `<p>${todo.description}</p>` : ''}
+                    ${completionDateHtml}
                 </div>
                 <div class="todo-actions">
                     <button class="complete-btn" data-id="${todo.id}">${todo.completed ? 'Uncomplete' : 'Complete'}</button>

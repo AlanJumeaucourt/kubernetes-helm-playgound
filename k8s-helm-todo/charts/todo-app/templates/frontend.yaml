@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ .Values.frontend.name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.frontend.replicas }}
   selector:
     matchLabels:
       app: {{ .Values.frontend.name }}
@@ -14,10 +14,13 @@ spec:
     spec:
       containers:
         - name: {{ .Values.frontend.name }}
-          image: {{.Values.frontend.image.repository}}:{{.Values.frontend.image.tag}}
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
           imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.frontend.port }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
           resources:
             requests:
               cpu: {{ .Values.frontend.resources.requests.cpu }}
@@ -25,6 +28,10 @@ spec:
             limits:
               cpu: {{ .Values.frontend.resources.limits.cpu }}
               memory: {{ .Values.frontend.resources.limits.memory }}
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: "{{ .Release.Name }}-nginx-config"
 ---
 apiVersion: v1
 kind: Service

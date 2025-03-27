@@ -1,0 +1,121 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-db-migration"
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      serviceAccountName: "{{ .Release.Name }}-migrations"
+      restartPolicy: OnFailure
+      initContainers:
+      - name: wait-for-db-secret
+        image: bitnami/kubectl:latest
+        command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          echo "Waiting for todo-db-app secret to be available..."
+          until kubectl get secret todo-db-app; do
+            echo "Secret not available yet, waiting..."
+            sleep 5
+          done
+          echo "Secret is available, proceeding with migrations."
+      containers:
+      - name: migrations
+        image: postgres:14-alpine
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: todo-db-app
+              key: uri
+        - name: PGSSLMODE
+          value: "prefer"
+        - name: TARGET_VERSION
+          value: "{{ .Values.migrations.version }}"
+        command:
+        - "/bin/sh"
+        - "-c"
+        - |
+          # Use the DATABASE_URL directly with psql
+          echo "Waiting for database to be ready..."
+          until PGCONNECT_TIMEOUT=5 psql "$DATABASE_URL" -c '\q'; do
+            echo "Waiting for database to be ready..."
+            sleep 2
+          done
+          
+          echo "Running migrations to target version: $TARGET_VERSION"
+          
+          # Get the current version from the database
+          if psql "$DATABASE_URL" -c "SELECT to_regclass('schema_migrations')" | grep -q schema_migrations; then
+            CURRENT_VERSION=$(psql "$DATABASE_URL" -t -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1" | tr -d '[:space:]')
+          else
+            # Initialize migrations table if it doesn't exist
+            psql "$DATABASE_URL" -c "CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR PRIMARY KEY, applied_at TIMESTAMP DEFAULT NOW())"
+            CURRENT_VERSION="0"
+          fi
+          
+          echo "Current database version: $CURRENT_VERSION"
+          
+          # Target version integer (remove dots)
+          TARGET_INT=$(echo $TARGET_VERSION | tr -d '.')
+          
+          # List all migration files in the mounted volume
+          ls -1 /migrations | sort | while read MIGRATION_FILE; do
+            # Extract version number from file name
+            VERSION=$(echo $MIGRATION_FILE | sed -E 's/V([0-9]+)__.+\.sql/\1/')
+            
+            # Determine migration version based on filename pattern
+            MIGRATION_SEMVER=""
+            case "$MIGRATION_FILE" in
+              "V1__initial_schema.sql")
+                MIGRATION_SEMVER="1.0.0"
+                ;;
+              "V2__add_completion_date.sql") 
+                MIGRATION_SEMVER="1.0.5"
+                ;;
+              *)
+                echo "Warning: No version mapping found for $MIGRATION_FILE, skipping"
+                continue
+                ;;
+            esac
+            
+            # Migration integer version (remove dots)
+            MIGRATION_INT=$(echo $MIGRATION_SEMVER | tr -d '.')
+            
+            # Check if migration is applicable for our target version
+            if [ "$MIGRATION_INT" -gt "$TARGET_INT" ]; then
+              echo "Skipping $MIGRATION_FILE (version $MIGRATION_SEMVER is higher than target $TARGET_VERSION)"
+              continue
+            fi
+            
+            # Skip if already applied
+            if [ "$VERSION" -le "$CURRENT_VERSION" ]; then
+              echo "Skipping $MIGRATION_FILE (already applied)"
+              continue
+            fi
+            
+            echo "Applying migration $MIGRATION_FILE (version $MIGRATION_SEMVER)..."
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "/migrations/$MIGRATION_FILE"
+            if [ $? -eq 0 ]; then
+              psql "$DATABASE_URL" -c "INSERT INTO schema_migrations (version) VALUES ('$VERSION')"
+              echo "Migration $MIGRATION_FILE successfully applied"
+            else
+              echo "Failed to apply migration $MIGRATION_FILE"
+              exit 1
+            fi
+          done
+          
+          echo "Database migrations completed successfully for target version: $TARGET_VERSION"
+        volumeMounts:
+        - name: migrations-volume
+          mountPath: /migrations
+      volumes:
+      - name: migrations-volume
+        configMap:
+          name: "{{ .Release.Name }}-migrations"

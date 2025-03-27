@@ -75,9 +75,8 @@ button:hover {
 }
 
 .todo-item.completed {
-    background-color: #e6ffe6;
-    text-decoration: line-through;
-    color: #666;
+    background-color: #e9f7ef;
+    border-left: 4px solid #27ae60;
 }
 
 .todo-content h3 {
@@ -109,4 +108,11 @@ button:hover {
 
 .delete-btn:hover {
     background-color: #da190b;
+}
+
+.completion-date {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #7f8c8d;
+    margin-top: 4px;
 }
