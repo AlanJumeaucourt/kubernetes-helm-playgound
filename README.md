@@ -1,12 +1,34 @@
-# Todo Application with Kubernetes and Helm
+# Kubernetes + Helm + FastAPI + PostgreSQL Todo App
 
-A full-stack Todo application deployed with Kubernetes and Helm.
+A showcase of Kubernetes and Helm expertise, featuring a sophisticated database migration system and modern cloud-native practices.
+
+## Key Technical Features
+
+- **Cloud Native PostgreSQL**: Using `cloudnative-pg` operator for production-grade PostgreSQL management
+- **Database Migration System**: 
+  - Automated schema migrations using Helm hooks
+  - Version-controlled database changes
+  - Zero-downtime migration support
+  - Migration job with retry capability
+  - Helm rollback support for version downgrades
+- **Kubernetes Best Practices**:
+  - Proper resource limits and requests
+  - Health checks and readiness probes
+  - RBAC configuration
+  - ConfigMap and Secret management
+  - Helm hooks for ordered operations
+- **Production-Ready Setup**:
+  - Proper service separation
+  - Ingress configuration
+  - Health monitoring
+  - Database connection management
 
 ## Components
 
 - **Frontend**: Simple HTML/CSS/JS UI served by Nginx
-- **Backend**: FastAPI RESTful API
-- **Database**: PostgreSQL for data persistence
+- **Backend**: FastAPI RESTful API with SQLAlchemy
+- **Database**: Cloud Native PostgreSQL for data persistence
+- **Infrastructure**: Kubernetes + Helm for orchestration
 
 ## Versioning
 
@@ -20,7 +42,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 See the [CHANGELOG.md](k8s-helm-todo/CHANGELOG.md) for a detailed list of changes for each version.
 
-### Current Version: 1.0.6
+### Current Version: 1.0.7
 
 The current version includes:
 - Full CRUD functionality for Todo items
@@ -43,13 +65,12 @@ The current version includes:
 ### Getting Started
 
 1. Clone this repository:
-   ```
-   git clone https://github.com/yourusername/full-helm-app.git
-   cd full-helm-app
+   ```bash
+   git clone https://github.com/AlanJumeaucourt/kubernetes-helm-playgound.git
+   cd kubernetes-helm-playgound
    ```
 
-2. Install cloudnativePG
-
+2. Install Cloud Native PostgreSQL operator:
    ```bash
    helm repo add cnpg https://cloudnative-pg.github.io/charts
    helm upgrade --install cnpg \
@@ -58,13 +79,32 @@ The current version includes:
    cnpg/cloudnative-pg
    ```
 
-3. Deploy the application
-
+3. Deploy the application:
    ```bash
+   # Using the deployment script (recommended)
    ./k8s-helm-todo/deploy.sh
+
+   # Or manually with Helm
+   helm install todo-app ./k8s-helm-todo/charts/todo-app
    ```
 
+## Database Migration System
 
+This project features a sophisticated database migration system that:
+
+1. Uses Helm hooks to manage migration order
+2. Automatically tracks applied migrations in a `schema_migrations` table
+3. Supports zero-downtime upgrades
+4. Provides migration job retry capability (up to 5 attempts)
+5. Supports Helm rollback to previous versions
+6. Handles database connection management
+
+Example migration:
+```sql
+-- V2__add_completion_date.sql
+ALTER TABLE todos 
+ADD COLUMN IF NOT EXISTS completion_date TIMESTAMP;
+```
 
 ## Development
 
@@ -82,20 +122,6 @@ When making changes to the application, please follow these guidelines:
 ### Automation Scripts
 
 This project includes several scripts to automate common tasks:
-
-#### Version Management
-
-To update the version across all project files and add a changelog entry:
-
-```bash
-# Update to version 1.0.3 with changelog message
-./k8s-helm-todo/update-version.sh 1.0.3 "Added user authentication feature"
-```
-
-This will:
-- Update version numbers in Chart.yaml, values.yaml, and Dockerfiles
-- Update version references in README.md
-- Add a new entry to CHANGELOG.md
 
 #### Deployment
 

@@ -2,7 +2,7 @@ backend:
   name: todo-backend
   image:
     repository: docker.io/alanjumeaucourthub/todo-app
-    tag: 1.0.6
+    tag: 1.0.7
     pullPolicy: IfNotPresent
   port: 8000
   replicas: 1
@@ -18,7 +18,7 @@ frontend:
   name: todo-frontend
   image:
     repository: docker.io/alanjumeaucourthub/todo-frontend
-    tag: 1.0.6
+    tag: 1.0.7
     pullPolicy: IfNotPresent
   port: 80
   replicas: 1
@@ -49,4 +49,4 @@ ingress:
 
 migrations:
   enabled: true
-  version: "1.0.6"
+  version: "1.0.7"
