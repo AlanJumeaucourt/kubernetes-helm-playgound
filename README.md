@@ -81,6 +81,36 @@ When making changes to the application, please follow these guidelines:
 
 This project includes several scripts to automate common tasks:
 
+#### GitHub Actions Automated Deployment
+
+This project includes a GitHub Actions workflow for automated deployments:
+
+- **Trigger by Tag**: Push a tag starting with 'v' (e.g., v1.0.5) to trigger an automated release
+- **Manual Trigger**: Use the workflow_dispatch event in GitHub Actions UI to manually start a deployment
+  
+To use this feature:
+
+1. **Tag-based deployment**:
+   ```bash
+   # Tag the commit with the new version
+   git tag v1.0.5
+   # Push the tag to trigger deployment
+   git push origin v1.0.5
+   ```
+
+2. **Manual deployment**:
+   - Go to the GitHub repository
+   - Navigate to Actions > "Deploy New Version"
+   - Click "Run workflow"
+   - Enter the version number and optional changelog message
+   - Click "Run workflow"
+
+The workflow will:
+- Update version numbers across all files
+- Build Docker images
+- Create a GitHub release with Docker images and chart files
+- Provide deployment instructions
+
 #### Version Management
 
 To update the version across all project files and add a changelog entry:
