@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_NAME=${1:-mycluster}
-DOCKER_USERNAME=${DOCKER_USERNAME:-$USER}  # Use environment variable or current user
+DOCKER_USERNAME=${DOCKER_USERNAME:-alanjumeaucourtHUB}
 
 # Get current version from Chart.yaml
 VERSION=$(grep -E '^version:' "$SCRIPT_DIR/charts/todo-app/Chart.yaml" | awk '{print $2}')
@@ -53,5 +53,3 @@ echo "kubectl port-forward service/todo-frontend 8081:80"
 echo ""
 echo "Then open http://localhost:8081 in your browser"
 
-# Make script executable
-chmod +x "$SCRIPT_DIR/deploy.sh"

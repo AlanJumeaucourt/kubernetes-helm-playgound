@@ -42,13 +42,13 @@ cd k8s-helm-todo
 ### 3. Build and Push Docker Image
 
 ```bash
-docker build -t your-dockerhub-username/todo-app:latest ./backend
+docker build -t alanjumeaucourtHUB/todo-app:latest ./backend
 ```
 
 (Optional: Push to DockerHub)
 
 ```bash
-docker push your-dockerhub-username/todo-app:latest
+docker push alanjumeaucourtHUB/todo-app:latest
 ```
 
 ### 4. Deploy the App Using Helm

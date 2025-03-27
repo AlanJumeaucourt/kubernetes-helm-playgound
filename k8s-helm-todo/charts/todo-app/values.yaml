@@ -1,7 +1,7 @@
 backend:
-  name: backend
+  name: todo-backend
   image:
-    repository: alanjumeaucourt/todo-app
+    repository: alanjumeaucourtHUB/todo-app
     tag: 1.0.5
     pullPolicy: IfNotPresent
   port: 8000
@@ -15,9 +15,9 @@ backend:
       memory: 256Mi
 
 frontend:
-  name: frontend
+  name: todo-frontend
   image:
-    repository: alanjumeaucourt/todo-frontend
+    repository: alanjumeaucourtHUB/todo-frontend
     tag: 1.0.5
     pullPolicy: IfNotPresent
   port: 80
