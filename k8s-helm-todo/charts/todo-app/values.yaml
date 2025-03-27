@@ -1,12 +1,7 @@
-image:
-  repository: todo-app
-  tag: 1.0.5
-  pullPolicy: IfNotPresent
-
 backend:
   name: backend
   image:
-    repository: todo-app
+    repository: alanjumeaucourt/todo-app
     tag: 1.0.5
     pullPolicy: IfNotPresent
   port: 8000
@@ -22,7 +17,7 @@ backend:
 frontend:
   name: frontend
   image:
-    repository: todo-frontend
+    repository: alanjumeaucourt/todo-frontend
     tag: 1.0.5
     pullPolicy: IfNotPresent
   port: 80
@@ -54,4 +49,4 @@ ingress:
 
 migrations:
   enabled: true
-  version: "1.0.5"  # Set the migration version to apply - default to 1.0.5
+  version: "1.0.5"

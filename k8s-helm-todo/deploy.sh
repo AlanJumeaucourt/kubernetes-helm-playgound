@@ -3,28 +3,42 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_NAME=${1:-mycluster}
+DOCKER_USERNAME=${DOCKER_USERNAME:-$USER}  # Use environment variable or current user
 
 # Get current version from Chart.yaml
 VERSION=$(grep -E '^version:' "$SCRIPT_DIR/charts/todo-app/Chart.yaml" | awk '{print $2}')
 
 echo "Deploying Todo App version $VERSION to cluster $CLUSTER_NAME"
 
-# Build Docker images
-echo "Building Docker images..."
-docker build -t todo-app:$VERSION "$SCRIPT_DIR/backend"
-docker build -t todo-frontend:$VERSION "$SCRIPT_DIR/frontend"
+# Check if --local flag is provided
+USE_LOCAL_IMAGES=false
+for arg in "$@"; do
+  if [ "$arg" = "--local" ]; then
+    USE_LOCAL_IMAGES=true
+    break
+  fi
+done
 
-# Import images to cluster
-echo "Importing images to k3d cluster..."
-k3d image import todo-app:$VERSION todo-frontend:$VERSION -c $CLUSTER_NAME
+if [ "$USE_LOCAL_IMAGES" = true ]; then
+  echo "Building local Docker images..."
+  docker build -t $DOCKER_USERNAME/todo-app:$VERSION "$SCRIPT_DIR/backend"
+  docker build -t $DOCKER_USERNAME/todo-frontend:$VERSION "$SCRIPT_DIR/frontend"
+
+  # Import images to cluster
+  echo "Importing local images to k3d cluster..."
+  k3d image import $DOCKER_USERNAME/todo-app:$VERSION $DOCKER_USERNAME/todo-frontend:$VERSION -c $CLUSTER_NAME
+else
+  echo "Using images from Docker Hub (username: $DOCKER_USERNAME)"
+  # No need to build or import, Kubernetes will pull them from Docker Hub
+fi
 
 # Check if the Helm release exists
 if helm status todo-app &> /dev/null; then
     echo "Upgrading existing Helm release..."
-    helm upgrade todo-app "$SCRIPT_DIR/charts/todo-app"
+    helm upgrade todo-app "$SCRIPT_DIR/charts/todo-app" --set backend.image.repository=$DOCKER_USERNAME/todo-app --set frontend.image.repository=$DOCKER_USERNAME/todo-frontend
 else
     echo "Installing new Helm release..."
-    helm install todo-app "$SCRIPT_DIR/charts/todo-app"
+    helm install todo-app "$SCRIPT_DIR/charts/todo-app" --set backend.image.repository=$DOCKER_USERNAME/todo-app --set frontend.image.repository=$DOCKER_USERNAME/todo-frontend
 fi
 
 # Wait for pods to be ready

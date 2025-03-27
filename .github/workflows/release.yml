@@ -1,0 +1,103 @@
+name: Build and Deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Need full history for changelog
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      
+      - name: Update Chart and values versions
+        run: |
+          # Update Chart.yaml version
+          sed -i "s/^version:.*/version: $VERSION/" k8s-helm-todo/charts/todo-app/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" k8s-helm-todo/charts/todo-app/Chart.yaml
+          
+          # Update values.yaml versions
+          sed -i "s/^  tag: .*/  tag: $VERSION/" k8s-helm-todo/charts/todo-app/values.yaml
+          sed -i "s/^    tag: .*/    tag: $VERSION/" k8s-helm-todo/charts/todo-app/values.yaml
+          sed -i "s/^  version: \".*\"/  version: \"$VERSION\"/" k8s-helm-todo/charts/todo-app/values.yaml
+      
+      - name: Update CHANGELOG.md
+        run: |
+          # Get commit messages since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            # If there's no previous tag, get all commits
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            # Get commits between previous tag and current tag
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges $PREV_TAG..HEAD)
+          fi
+          
+          # Update CHANGELOG.md
+          DATE=$(date +%Y-%m-%d)
+          echo -e "# v$VERSION ($DATE)\n\n$COMMITS\n\n$(cat k8s-helm-todo/CHANGELOG.md)" > k8s-helm-todo/CHANGELOG.md
+      
+      - name: Commit version updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add k8s-helm-todo/charts/todo-app/Chart.yaml k8s-helm-todo/charts/todo-app/values.yaml k8s-helm-todo/CHANGELOG.md
+          git commit -m "chore: update version to $VERSION" || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./k8s-helm-todo/backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/todo-app:${{ env.VERSION }}
+            ${{ secrets.DOCKER_USERNAME }}/todo-app:latest
+      
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./k8s-helm-todo/frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/todo-frontend:${{ env.VERSION }}
+            ${{ secrets.DOCKER_USERNAME }}/todo-frontend:latest
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+      
+      - name: Package Helm chart
+        run: |
+          helm package ./k8s-helm-todo/charts/todo-app --destination .
+      
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            todo-app-${{ env.VERSION }}.tgz
+          body_path: k8s-helm-todo/CHANGELOG.md
+          draft: false
+          prerelease: false 
