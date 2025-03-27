@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_NAME=${1:-mycluster}
-DOCKER_USERNAME=${DOCKER_USERNAME:-alanjumeaucourtHUB}
+DOCKER_USERNAME=${DOCKER_USERNAME:-alanjumeaucourthub}
 
 # Get current version from Chart.yaml
 VERSION=$(grep -E '^version:' "$SCRIPT_DIR/charts/todo-app/Chart.yaml" | awk '{print $2}')
@@ -27,18 +27,21 @@ if [ "$USE_LOCAL_IMAGES" = true ]; then
   # Import images to cluster
   echo "Importing local images to k3d cluster..."
   k3d image import $DOCKER_USERNAME/todo-app:$VERSION $DOCKER_USERNAME/todo-frontend:$VERSION -c $CLUSTER_NAME
+  
+  # Set local image repositories
+  HELM_EXTRA_ARGS="--set backend.image.repository=$DOCKER_USERNAME/todo-app --set frontend.image.repository=$DOCKER_USERNAME/todo-frontend"
 else
-  echo "Using images from Docker Hub (username: $DOCKER_USERNAME)"
-  # No need to build or import, Kubernetes will pull them from Docker Hub
+  echo "Using defaultimages from Docker Hub"
+  HELM_EXTRA_ARGS=""
 fi
 
 # Check if the Helm release exists
 if helm status todo-app &> /dev/null; then
     echo "Upgrading existing Helm release..."
-    helm upgrade todo-app "$SCRIPT_DIR/charts/todo-app" --set backend.image.repository=$DOCKER_USERNAME/todo-app --set frontend.image.repository=$DOCKER_USERNAME/todo-frontend
+    helm upgrade todo-app "$SCRIPT_DIR/charts/todo-app" $HELM_EXTRA_ARGS
 else
     echo "Installing new Helm release..."
-    helm install todo-app "$SCRIPT_DIR/charts/todo-app" --set backend.image.repository=$DOCKER_USERNAME/todo-app --set frontend.image.repository=$DOCKER_USERNAME/todo-frontend
+    helm install todo-app "$SCRIPT_DIR/charts/todo-app" $HELM_EXTRA_ARGS
 fi
 
 # Wait for pods to be ready
