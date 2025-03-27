@@ -20,7 +20,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 See the [CHANGELOG.md](k8s-helm-todo/CHANGELOG.md) for a detailed list of changes for each version.
 
-### Current Version: 1.0.5
+### Current Version: 1.0.6
 
 The current version includes:
 - Full CRUD functionality for Todo items
@@ -29,6 +29,8 @@ The current version includes:
 - Helm chart for Kubernetes deployment
 - Completion date tracking for todos
 - Database migration system for schema updates
+- Updated deployment process with local Docker image builds
+- Simplified deployment without GitHub Actions
 
 ## Installation
 

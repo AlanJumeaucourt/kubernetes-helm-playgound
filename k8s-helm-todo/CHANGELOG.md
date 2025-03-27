@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.6] - 2025-03-26
+
+### Changed
+- Updated Docker image repository references to use new username 'alanjumeaucourtHUB'
+- Updated backend service name to 'todo-backend'
+- Updated frontend service name to 'todo-frontend'
+- Removed GitHub Actions deployment workflow
+- Updated deployment script to support local Docker image builds
+
+### Removed
+- Removed GitHub Actions deployment workflow
+
 ## [1.0.5] - 2025-03-26
 
 ### Added
