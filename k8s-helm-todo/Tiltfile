@@ -1,0 +1,58 @@
+# Tiltfile for Todo App with live updates
+load('ext://helm_resource', 'helm_resource', 'helm_repo')
+
+update_settings(
+    k8s_upsert_timeout_secs=60
+)
+
+# Settings
+allow_k8s_contexts('k3s-default')
+default_registry('docker.io/alanjumeaucourthub')
+
+# Install CloudNativePG Operator
+local('helm repo add cnpg https://cloudnative-pg.github.io/charts')
+local('helm upgrade --install cnpg --namespace cnpg-system --create-namespace cnpg/cloudnative-pg')
+
+# Backend configuration
+docker_build(
+    'todo-backend',
+    './backend',
+    dockerfile='./backend/Dockerfile',
+    build_args={'flask_debug': 'True'},  # Enable Flask debug mode
+    live_update=[
+        sync('./backend', '/app'),
+        run('cd /app && pip install -r requirements.txt',
+            trigger=['./backend/requirements.txt']),
+        # Force Flask to reload when Python files change
+        run('touch /app/main.py', trigger=['./backend/*.py']),
+    ],
+    entrypoint=['python', 'main.py']
+)
+
+# Frontend configuration
+docker_build(
+    'todo-frontend',
+    './frontend',
+    dockerfile='./frontend/Dockerfile',
+    live_update=[
+        sync('./frontend/index.html', '/usr/share/nginx/html/'),
+        sync('./frontend/styles.css', '/usr/share/nginx/html/'),
+        sync('./frontend/app.js', '/usr/share/nginx/html/')
+    ]
+)
+
+# Single Helm release to manage both frontend and backend
+helm_resource(
+    name='todo-app',
+    chart='./charts/todo-app',
+    namespace='default',
+    image_deps=['todo-frontend', 'todo-backend'],
+    image_keys=[
+        ('frontend.image.repository', 'frontend.image.tag'),
+        ('backend.image.repository', 'backend.image.tag')
+    ],
+    flags=[
+        '--values', './charts/todo-app/values.yaml'
+    ],
+)
+

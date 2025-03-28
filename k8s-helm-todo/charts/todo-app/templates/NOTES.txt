@@ -1,0 +1,31 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+IMPORTANT: Database Credentials Management
+----------------------------------------
+The database superuser credentials are managed through Kubernetes secrets. For security reasons:
+
+1. In production, you should NOT use the default credentials from values.yaml
+2. Instead, provide your own values using one of these methods:
+   - Use --set: helm install --set cnpg.superuser.credentials.password=your-secure-password
+   - Use a custom values file: helm install -f custom-values.yaml
+   - Use a secret management solution like HashiCorp Vault or AWS Secrets Manager
+
+To update the credentials after installation:
+```bash
+kubectl create secret generic {{ .Values.cnpg.superuser.secretName }} \
+  --from-literal=username=your-username \
+  --from-literal=password=your-secure-password \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Accessing the Application
+------------------------
+To access the application, run:
+```bash
+kubectl port-forward service/{{ .Values.frontend.name }} 8081:{{ .Values.frontend.port }}
+```
+Then open http://localhost:8081 in your browser.
+
+For more information, visit: https://github.com/AlanJumeaucourt/kubernetes-helm-playgound

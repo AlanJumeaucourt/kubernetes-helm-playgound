@@ -42,8 +42,13 @@ cnpg:
     owner: todoapp
   superuser:
     secretName: todo-db-superuser
+    # These values should be overridden in production using --set or a custom values file
+    credentials:
+      username: postgres
+      password: postgres  # Change this in production!
 
 ingress:
+  name: todo-app-ingress
   enabled: true
   host: todo.local
 
