@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.9] - 2025-03-28
+
+### Changed
+- Enhanced deployment script with improved logging and user interaction
+- Added colored output and timestamps to deployment script logs
+- Added deployment summary with confirmation prompt
+- Made hosts file configuration automatic
+- Improved clarity of local vs Docker Hub image usage in deployment summary
+
+## [1.0.8] - 2025-03-28
+
+### Added
+- Added Tiltfile to the repository to allow live updates for development
+
+
 ## [1.0.6] - 2025-03-26
 
 ### Changed

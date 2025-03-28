@@ -6,9 +6,9 @@ COPY app.js /usr/share/nginx/html/
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-LABEL version="1.0.3" \
+LABEL version="1.0.8" \
       description="Todo App Frontend UI" \
-      maintainer="Your Name <your.email@example.com>"
+      maintainer="Alan Jumeaucourt <git@mail.jumeaucourt.com>"
 
 EXPOSE 80
 

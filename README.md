@@ -42,7 +42,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 See the [CHANGELOG.md](k8s-helm-todo/CHANGELOG.md) for a detailed list of changes for each version.
 
-### Current Version: 1.0.7
+### Current Version: 1.0.
 
 The current version includes:
 - Full CRUD functionality for Todo items
